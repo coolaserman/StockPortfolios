@@ -10,7 +10,11 @@ from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.model_selection import train_test_split
 from datetime import datetime, timedelta
 import yfinance as yf
+import time
 
+
+#def my_job():
+print("YES")
 # Create a Ticker object for a specific stock symbol
 ticker = yf.Ticker("^IXIC")
 
@@ -24,6 +28,7 @@ info = ticker.info
 
 # Get historical OHLC prices and other financial data
 df = ticker.history(period="max", auto_adjust=False, actions=False)
+df.to_csv("Yahoo Finance CSV")
 df.index = df.index.map(str)
 #df = pd.read_csv('^IXIC.csv')
 print("Type of history is", type(df))
@@ -140,12 +145,6 @@ plt.plot(predicted_dates, ridge_model_predict_prediction, label='Forecast', colo
 plt.plot(df.index[display_at:], df['Close'][display_at:], label='Actual', color='red')
 plt.legend()
 
-"""## 3. Lasso Regression
-Building Third model of regression - Lasso Regression
-"""
-
-# Defining the Lasso Regression Model
-
 lasso_model = Lasso()
 lasso_model.fit(X_train, y_train)     # Training the algorithm
 
@@ -158,7 +157,7 @@ print('Lasso Model score:', lasso_model_score)
 
 lasso_model_predict_prediction = lasso_model.predict(X_predict)
 lasso_model_real_prediction = lasso_model.predict(np.array(df.drop(['Prediction'], axis=1)))
-
+print("still okay")
 # Plotting the Actual and Prediction Prices
 
 plt.figure(figsize=(15, 9))
@@ -167,3 +166,9 @@ plt.plot(predicted_dates, lasso_model_predict_prediction, label='Forecast', colo
 plt.plot(df.index[display_at:], df['Close'][display_at:], label='Actual', color='red')
 plt.legend()
 plt.show()
+print("YEAH")
+
+
+#while True:
+#    my_job()
+#    time.sleep(60) # run the job every 60 seconds
