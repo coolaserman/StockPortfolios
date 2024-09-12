@@ -1,0 +1,188 @@
+import numpy as np
+import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib import style
+from pygments.formatters import img
+from sklearn import preprocessing
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.model_selection import train_test_split
+from datetime import datetime, timedelta
+import yfinance as yf
+import time
+
+def my_job():
+    # function to run as a job
+    ticker = yf.Ticker("^IXIC")
+
+    # Get detailed information about the stock symbol
+    info = ticker.info
+    # print("Detailed Information:")
+    # for key, value in info.items():
+    # format and indent the printed output
+    # print(f"{key}: {value}")
+    # print("-" * 10)
+
+    # Get historical OHLC prices and other financial data
+    df = ticker.history(period="max", auto_adjust=False, actions=False)
+    df.to_csv("Yahoo Finance CSV")
+    df.index = df.index.map(str)
+    # df = pd.read_csv('^IXIC.csv')
+    print("Type of history is", type(df))
+    print(df.columns)
+
+    # df.set_index('Date', inplace=True)
+    print(df.tail())
+
+    plt.subplot(2, 2, 1)
+    df['Adj Close'].plot(label='IXIC', figsize=(15, 9), title='Adjusted Closing Price', color='red', linewidth=1.0,
+                         grid=True)
+    plt.legend()
+    print("Plotted")
+    print("Correlation", df.corr())
+    #plt.show()
+
+    close_col = df['Adj Close']
+    mvag = close_col.rolling(window=100).mean()
+
+    df['Adj Close'].plot(label='IXIC', figsize=(15, 10), title='Adjusted Closing Price vs Moving Average', color='red',
+                         linewidth=1.0, grid=True)
+    mvag.plot(label='MVAG', color='blue')
+    plt.legend()
+    #plt.show()
+
+    rd = close_col / close_col.shift(1) - 1
+    rd.plot(label='Return', figsize=(15, 10), title='Return Deviation', color='red', linewidth=1.0, grid=True)
+    plt.legend()
+    #plt.show(block=False)
+
+    predict_days = 60
+
+    # Shifting by the Number of Predict days for Prediction array
+
+    df['Prediction'] = df['Adj Close'].shift(-predict_days)
+    # print(df['Prediction'])
+    # print(df['Adj Close'])
+    print("Prediction stuff", df['Prediction'].tail())
+    # Dropping the Prediction Row
+
+    X = np.array(df.drop(['Prediction'], axis=1))
+    X = X[:-predict_days]  # Size upto predict days
+    print(X)
+    # print(X)
+    print(X.shape)
+
+    # Creating the Prediction Row
+
+    y = np.array(df['Prediction'])
+    y = y[:-predict_days]  # Size upto predict_days
+    # print(y)
+    print(y.shape)
+    print("NO")
+    # Splitting the data into Training data & Testing data
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                                        test_size=0.2)  # Splitting the data into 80% for training & 20% for testing
+    print(X_train.shape)
+    print(y_train.shape)
+    print(X_test.shape)
+    print(y_test.shape)
+
+    # Defining the Linear Regression Model
+
+    linear_model = LinearRegression()
+    linear_model.fit(X_train, y_train)  # Training the algorithm
+
+    # Score of the Linear Regression Model (Using the Test Data)
+
+    linear_model_score = linear_model.score(X_test, y_test)
+    print('Linear Model score:', linear_model_score)
+
+    # Define the Real & Prediction Values
+
+    X_predict = np.array(df.drop(['Prediction'], axis=1))[-predict_days:]
+
+    linear_model_predict_prediction = linear_model.predict(X_predict)
+    linear_model_real_prediction = linear_model.predict(np.array(df.drop(['Prediction'], axis=1)))
+
+    # Defining some Parameters
+
+    predicted_dates = []
+    recent_date = df.index.max()
+    display_at = 1000
+    alpha = 0.5
+
+    for i in range(predict_days):
+        recent_date += str(timedelta(days=1))
+        predicted_dates.append(recent_date)
+
+    # Plotting the Actual and Prediction Prices
+
+    plt.subplot(2, 2, 2)
+    plt.plot(df.index[display_at:], linear_model_real_prediction[display_at:], label='Linear Prediction', color='blue',
+             alpha=alpha)
+    plt.plot(predicted_dates, linear_model_predict_prediction, label='Forecast', color='green', alpha=alpha)
+    plt.plot(df.index[display_at:], df['Close'][display_at:], label='Actual', color='red')
+    plt.legend()
+    #plt.show(block=False)
+    #plt.show()
+
+    # Defining the Ridge Regression Model
+
+    ridge_model = Ridge()
+    ridge_model.fit(X_train, y_train)  # Training the algorithm
+
+    # Score of the Ridge Regression Model (Using the Test Data)
+
+    ridge_model_score = ridge_model.score(X_test, y_test)
+    print('Ridge Model score:', ridge_model_score)
+
+    # Define the Real & Prediction Values
+
+    ridge_model_predict_prediction = ridge_model.predict(X_predict)
+    ridge_model_real_prediction = ridge_model.predict(np.array(df.drop(['Prediction'], axis=1)))
+
+    # Plotting the Actual and Prediction Prices
+
+    #plt.figure(figsize=(15, 9))
+    plt.subplot(2, 2, 3)
+    plt.plot(df.index[display_at:], ridge_model_real_prediction[display_at:], label='Ridge Prediction', color='blue',
+             alpha=alpha)
+    plt.plot(predicted_dates, ridge_model_predict_prediction, label='Forecast', color='green', alpha=alpha)
+    plt.plot(df.index[display_at:], df['Close'][display_at:], label='Actual', color='red')
+    plt.legend()
+    #plt.show(block=False)
+    #plt.show()
+
+    lasso_model = Lasso()
+    lasso_model.fit(X_train, y_train)  # Training the algorithm
+
+    # Score of the Lasso Regression Model (Using the Test Data)
+
+    lasso_model_score = lasso_model.score(X_test, y_test)
+    print('Lasso Model score:', lasso_model_score)
+
+    # Define the Real & Prediction Values
+
+    lasso_model_predict_prediction = lasso_model.predict(X_predict)
+    lasso_model_real_prediction = lasso_model.predict(np.array(df.drop(['Prediction'], axis=1)))
+    print("still okay")
+    # Plotting the Actual and Prediction Prices
+
+    #plt.figure(figsize=(15, 9))
+    plt.subplot(2, 2, 4)
+    plt.plot(df.index[display_at:], lasso_model_real_prediction[display_at:], label='Lasso Prediction', c='blue',
+             alpha=alpha)
+    plt.plot(predicted_dates, lasso_model_predict_prediction, label='Forecast', color='green', alpha=alpha)
+    plt.plot(df.index[display_at:], df['Close'][display_at:], label='Actual', color='red')
+    plt.legend()
+    plt.show(block = False)
+    plt.pause(15)
+    plt.close()
+
+
+
+
+while True:
+    my_job()
+    time.sleep(60) # run the job every 60 seconds
